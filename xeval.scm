@@ -42,8 +42,7 @@
         (lambda (x e)
           (cond
            ((eq x t) t)
-           ((atom x)
-            (lookup x e))
+           ((atom x) (lookup x e))
            ((atom (car x))
             (cond ((eq (car x) (quote quote)) (cadr x))
                   ((eq (car x) (quote atom)) (atom (xeval (cadr x) e)))

@@ -60,7 +60,7 @@ These are peudo-strings I think.
 (SETQ *LP "(" LEFT PAREN
 (SETQ *RP ")" RIGHT PAREN
 (SETQ *NL "
-" ; NEWLINE
+") ; NEWLINE
 
 
 The next PRO-GAMER move is to allows the "primitive" special operators to be passed as arguments
@@ -84,3 +84,37 @@ I suppose this is inevitable ...
 
 (SETQ LIST (LAMBDA X X)) ; This is because of including the Lexprs as a feature of the lang.
 
+[What comes next is pretty standard]
+
+(SETQ NULL (LAMBDA (X) (EQ X NIL)))
+(SETQ NOT NULL)
+
+(SETQ REPLACE-CAR (LAMBDA (X Y)
+                          (IF (ATOM X)
+                              (HALT "REPLACE-CAR: EXPECTED CONS")
+                              (*REPLACE-CAR X Y)))))
+
+(SETQ REPLACE-CDR (LAMBDA (X Y)
+                          (IF (ATOM X)
+                              (HALT "REPLACE-CDR: EXPECTED CONS")
+                              (*REPLACE-CDR X Y))))
+
+
+(SETQ REVCONC (LAMBDA (A B)
+                     (IF (EQ A NIL)
+                         B
+                         (REVCONC (CDR A) (CONS (CAR A) B)))))
+
+(SETQ REVERSE (LAMBDA (A)
+                      (REVCONC A NIL)))
+
+(SETQ NREVERSE (LAMBDA (A)
+                       (LABEL ((NRECONC
+                                (LAMBDA (A B)
+                                        (COND ((EQ A NIL) B)
+                                              (T (SETQ *TMP (CDR A))
+                                                 (*REPLACE-CDR A B)
+                                                 (NRECONC *TMP A))))))
+                              (COND ((EQ A NIL) NIL)
+                                    ((ATOM A)   (HALT "NREVERSE: EXPECTED LIST"))
+                                    (T          (NRECONC A NIL))))))
