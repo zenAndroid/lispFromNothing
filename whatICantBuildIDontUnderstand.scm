@@ -210,8 +210,34 @@ Also works with lists.
                        ((MAP (LAMBDA (A B R)
                                      (COND ((EQ A NIL) (NREVERSE R))
                                            ((EQ B NIL) (NREVERSE R))
-                                           (T (MAP (CDR A)
-                                                   (CDR B)
-                                                   (CONS (*MAPPED-FUNCTION (CAR A) (CAR B))
-                                                         R)))))))
+                                           (T          (MAP (CDR A)
+                                                            (CDR B)
+                                                            (CONS (*MAPPED-FUNCTION (CAR A) (CAR B))
+                                                                  R)))))))
                        (MAP *ARRAY1 *ARRAY2 NIL))))
+
+(SETQ REDUCE (LAMBDA (*F *B *A)
+                     (LABEL
+                      ((LOCAL-REDUCER (LAMBDA (A RESULT)
+                                              (COND ((EQ A NIL) RESULT)
+                                                    (T          (LOCAL-REDUCER (CDR A) (*F RESULT (CAR A))))))))
+                      (LOCAL-REDUCER *A *B))))
+
+(SETQ RREDUCE (LAMBDA (*F *B *A)
+                      (LABEL
+                       ((LOCAL-REDUCER (LAMBDA (A R)
+                                               (COND ((EQ A NIL) R)
+                                                     (T          (LOCAL-REDUCER (CDR A) (*F (CAR A) R)))))))
+                       (LOCAL-REDUCER (REVERSE *A) *B))))
+
+WRITEC will print the first character of its argument, if its
+argument is an atom. There cannot be any type checking here,
+because WRITEC can also print first characters of atom names,
+which is something entirely different. Things get a bit messy here!
+All the ugly details follow immediately.
+
+(SETQ WRITEC (LAMBDA (C)
+                     (*WRITEC C)))
+
+(SETQ TERPRI (LAMBDA ()
+                     (*WRITEC *NL)))
