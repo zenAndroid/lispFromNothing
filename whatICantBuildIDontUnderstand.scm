@@ -236,8 +236,8 @@ because WRITEC can also print first characters of atom names,
 which is something entirely different. Things get a bit messy here!
 All the ugly details follow immediately.
 
-(SETQ WRITEC (LAMBDA (C)
+(SETQ WRITECHAR (LAMBDA (C)
                      (*WRITEC C)))
 
-(SETQ TERPRI (LAMBDA ()
-                     (*WRITEC *NL)))
+(SETQ TERMINATE-PRINTER (LAMBDA () ; Original name: TERPRI (because lisp is retar-, lisp is the most powerful language in the world actually and people that sont like it just dont GET it ya kno)
+                                (*WRITEC *NL)))
