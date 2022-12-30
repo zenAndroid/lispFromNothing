@@ -82,7 +82,7 @@ I suppose this is inevitable ...
 
 [Redacted the three letter ones tbh]
 
-(SETQ LIST (LAMBDA X X)) ; This is because of including the Lexprs as a feature of the lang.
+(SETQ LIST (LAMBDA ARGLIST ARGLIST)) ; This is because of including the Lexprs as a feature of the lang.
 
 [What comes next is pretty standard]
 
@@ -157,47 +157,61 @@ I suppose this is inevitable ...
 (SETQ NCONC (LAMBDA (A B)
                     (LABEL
                      ((LOOP (LAMBDA (A B)
-                                    (COND ((ATOM (CDR A))
-                                           (REPLACE-CDR A B))
-                                          (T (NCONC (CDR A) B))))))
+                                    (COND ((ATOM (CDR A)) (REPLACE-CDR A B))
+                                          (T              (NCONC (CDR A) B))))))
                      (COND ((ATOM A) B)
                            (T (LOOP A B)
                               A)))))
 
 (SETQ EQUAL (LAMBDA (A B)
                     (COND ((EQ A B))
-                          ((ATOM A) NIL)
-                          ((ATOM B) NIL)
-                          ((EQUAL (CAR A) (CAR B))
-                           (EQUAL (CDR A) (CDR B))))))
+                          ((ATOM A)                NIL)
+                          ((ATOM B)                NIL)
+                          ((EQUAL (CAR A) (CAR B)) (EQUAL (CDR A) (CDR B))))))
 
 Works the same as the same as the classic one.
 
+;; (member 'koo '(joo hoo ioo koo loo poo coo))
+;; (koo loo poo coo)
 (SETQ MEMBER (LAMBDA (X A)
                      (COND ((EQ A NIL) NIL)
                            ((EQUAL X (CAR A)) A)
                            (T (MEMBER X (CDR A))))))
+
+;; (assoc 'k '((k . kk)))
+;; (k . kk)
+;; > (assoc 'k '((k . kk) (kkkj . joihou)))
+;; (k . kk)
+;; > (assoc 'kkkj '((k . kk) (kkkj . joihou)))
+;; (kkkj . joihou)
+
+Also works with lists.
 
 (SETQ ASSOC (LAMBDA (X A)
                     (COND ((EQ A NIL) NIL)
                           ((EQUAL X (CAAR A)) (CAR A))
                           (T (ASSOC X (CDR A))))))
 
-(SETQ MAPCAR (LAMBDA (*F *A)
+;; In case you wonder about the funny var iable names, like *F: they
+;; are used to avoid the downward FUNARG problem (page 189). A
+;; leading ‘‘*’’ character should never appear in programs, except in
+;; LISP system code and var iables of higher-order functions.
+
+(SETQ MAPCAR (LAMBDA (*MAPPED-FUNCTION *ARRAY)
                      (LABEL
                       ((MAP (LAMBDA (A R)
                                     (COND ((EQ A NIL) (NREVERSE R))
                                           (T (MAP (CDR A)
-                                                  (CONS (*F (CAR A)) R)))))))
-                      (MAP *A NIL))))
+                                                  (CONS (*MAPPED-FUNCTION (CAR A)) R)))))))
+                      (MAP *ARRAY NIL))))
 
-(SETQ MAPCAR2 (LAMBDA (*F *A *B)
+(SETQ MAPCAR2 (LAMBDA (*MAPPED-FUNCTION *ARRAY1 *ARRAY2)
                       (LABEL
                        ((MAP (LAMBDA (A B R)
                                      (COND ((EQ A NIL) (NREVERSE R))
                                            ((EQ B NIL) (NREVERSE R))
                                            (T (MAP (CDR A)
                                                    (CDR B)
-                                                   (CONS (*F (CAR A) (CAR B))
+                                                   (CONS (*MAPPED-FUNCTION (CAR A) (CAR B))
                                                          R)))))))
-                       (MAP *A *B NIL))))
+                       (MAP *ARRAY1 *ARRAY2 NIL))))
