@@ -1,55 +1,55 @@
-;; I am basically making this file to "translate" the code in the book.
+I am basically making this file to "translate" the code in the book.
 
-;; To make the names of the funtions and of the arguments clearer.
+To make the names of the funtions and of the arguments clearer.
 
-;; This interpreter/compiler will be extended to support LAMBDA EXPRESSIONS (Lexprs)
+This interpreter/compiler will be extended to support LAMBDA EXPRESSIONS (Lexprs)
 
-;; Also adding support for the PROGN form.
+Also adding support for the PROGN form.
 
-;; In addition there will be a few new special for ms that will be used
-;; inter nally to implement the LISP system in LISP:
-;; *READC *WRITEC
-;; *CAR *CDR *RPLACA *RPLACD
-;; *ATOMP *SETAT OM
-;; *NEXT *POOL
-;; *HALT
+In addition there will be a few new special for ms that will be used
+inter nally to implement the LISP system in LISP:
+*READC *WRITEC
+*CAR *CDR *RPLACA *RPLACD
+*ATOMP *SETAT OM
+*NEXT *POOL
+*HALT
 
-;; I will rename these to more appropriate and understandable names.
+I will rename these to more appropriate and understandable names.
 
-;; *READCHAR *WRITECHAR
-;; *CAR
-;; *CDR
-;; *REPLACE-CAR
-;; *REPLACE-CDR
-;; *ATOM-TAG-P *SETATOMTAG
+*READCHAR *WRITECHAR
+*CAR
+*CDR
+*REPLACE-CAR
+*REPLACE-CDR
+*ATOM-TAG-P *SETATOMTAG
 
-      ;; The *ATOM-TAG-P function finds out if a cell (see below) has its atom
-      ;; tag set. This does not mean that the cell is a LISP atom, though—
-      ;; the atom tag is a much more low-level concept that will be
-      ;; explained in detail in the next section. The *SETATOMTAG function
-      ;; can be used to set or clear the atom tag of a cell. It is mostly used
-      ;; to create LISP atoms. Nothing stops LISP from being low-level!
-      ;; Your imagination is the limit!
+      The *ATOM-TAG-P function finds out if a cell (see below) has its atom
+      tag set. This does not mean that the cell is a LISP atom, though—
+      the atom tag is a much more low-level concept that will be
+      explained in detail in the next section. The *SETATOMTAG function
+      can be used to set or clear the atom tag of a cell. It is mostly used
+      to create LISP atoms. Nothing stops LISP from being low-level!
+      Your imagination is the limit!
 
-;; *NEXT *POOL
+*NEXT *POOL
 
-      ;; The *POOL variable points to the cell pool, i.e. the memory pool
-      ;; from which conses and atoms will be allocated. *NEXT is a
-      ;; function that, given a cell, returns the address of the next cell in
-      ;; the pool.
+      The *POOL variable points to the cell pool, i.e. the memory pool
+      from which conses and atoms will be allocated. *NEXT is a
+      function that, given a cell, returns the address of the next cell in
+      the pool.
 
-;; *HALT
+*HALT
 
 
-;; The symbol list is a list containing all atoms (symbols) that are
-;; known to the LISP system. It is the mechanism that gives identity
-;; to atoms. Whenever the reader reads an atom, it looks it up in the
-;; symbol list and if the symbol already is in the list, it will return the
-;; symbol in the list instead of the one just read. When the symbol is
-;; not in the list, it will add it first. Because the reader always retur ns
-;; the same member of the symbol list when reading a symbol
-;; consisting of the same characters, symbols are equal in the sense
-;; of EQ.
+The symbol list is a list containing all atoms (symbols) that are
+known to the LISP system. It is the mechanism that gives identity
+to atoms. Whenever the reader reads an atom, it looks it up in the
+symbol list and if the symbol already is in the list, it will return the
+symbol in the list instead of the one just read. When the symbol is
+not in the list, it will add it first. Because the reader always retur ns
+the same member of the symbol list when reading a symbol
+consisting of the same characters, symbols are equal in the sense
+of EQ.
 
 (SETQ *SYMBOL-LIST (*NEXT (*NEXT *POOL))
 
@@ -276,3 +276,46 @@ All the ugly details follow immediately.
                                                             (*WRITEC *RP))))))
                           (PRINT-DELEGATE X)
                           X)))
+
+(SETQ PRINT (LAMBDA (X)
+                    (PRINT-ITEM X)
+                    (TERMINATE-PRINTER)
+                    X))
+
+The SAMENAMEP function expects two atom names, i.e. atoms with
+their root cells removed, and returns T, if the chains of characters
+of the two names match.
+
+(SETQ SAMENAMEP (LAMBDA (X Y)
+                        (COND ((EQ X NIL) (EQ Y NIL))
+                              ((EQ Y NIL) NIL)
+                              ((EQ (*CAR X) (*CAR Y))
+                               (SAMENAMEP (*CDR X) (*CDR Y))))))
+
+; REMINDER: Whenever you see *CAR or *CDR, remember they are the untyped versions.
+; Specifically, refer to the figure in page 52 (FigureFour-p52)
+; So the *CAR goes straight to the CHARACTER LIST that makes up the *NAME* of a given ATOM.
+
+(SETQ INTERN (LAMBDA (ARG-SYM) ; Interns symbols and itroduces then to the symbol list, uses bucket list data structure.
+                     (LABEL ((FIRST (LAMBDA (ARG) (CONS (MKNAME (*CAR ARG) NIL) NIL)))
+                             ; FIRST := takes arg symbol; makes a list of an atomic cell named with the first char of the arg. (??? i think this is a good way of explaining it?)
+                             (FIND  (LAMBDA (X SELECTOR BUCKET-SUBLISTS)
+                                            (COND ((EQ BUCKET-SUBLISTS NIL)                               NIL)
+                                                  ((SAMENAMEP (*CAR X) (*CAR (SELECTOR BUCKET-SUBLISTS))) (CAR BUCKET-SUBLISTS))
+                                                  (T                                                      (FIND X SELECTOR (CDR BUCKET-SUBLISTS))))))
+                             ; FIND := X=SYMBOL SELECTOR=CAR/CAAR BUCKET-SUBLISTS=self-explanatory
+                             ; Traverses the bucket's sublists to find 
+                             (F (FIRST ARG-SYM))
+                             (B (FIND F CAAR (CAR *SYMLIS))))
+                            (COND (B (LABEL ((V (FIND ARG-SYM CAR (CDR B))))
+                                            (COND (V)
+                                                  (T (*REPLACE-CDR B (CONS ARG-SYM (CDR B)))
+                                                     ARG-SYM))))
+                                  (T (*REPLACE-CAR *SYMLIS (CONS (CONS F (LIST ARG-SYM))
+                                                                 (CAR *SYMLIS)))
+                                     ARG-SYM)))))
+
+(SETQ MKNAME (LAMBDA (C A)
+                     (LABEL ((N (CONS NIL A)))
+                            (*SETATOM N T)
+                            (*RPLACA N (*CAR C)))))
