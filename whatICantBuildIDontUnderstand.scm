@@ -299,23 +299,26 @@ of the two names match.
 (SETQ INTERN (LAMBDA (ARG-SYM) ; Interns symbols and itroduces then to the symbol list, uses bucket list data structure.
                      (LABEL ((FIRST (LAMBDA (ARG) (CONS (MKNAME (*CAR ARG) NIL) NIL)))
                              ; FIRST := takes arg symbol; makes a list of an atomic cell named with the first char of the arg. (??? i think this is a good way of explaining it?)
-                             (FIND  (LAMBDA (X SELECTOR BUCKET-SUBLISTS)
-                                            (COND ((EQ BUCKET-SUBLISTS NIL)                               NIL)
-                                                  ((SAMENAMEP (*CAR X) (*CAR (SELECTOR BUCKET-SUBLISTS))) (CAR BUCKET-SUBLISTS))
-                                                  (T                                                      (FIND X SELECTOR (CDR BUCKET-SUBLISTS))))))
-                             ; FIND := X=SYMBOL SELECTOR=CAR/CAAR BUCKET-SUBLISTS=self-explanatory
-                             ; Traverses the bucket's sublists to find 
+
+                             (FIND  (LAMBDA (X SELECTOR A)
+                                            (COND ((EQ A NIL)                               NIL)
+                                                  ((SAMENAMEP (*CAR X) (*CAR (SELECTOR A))) (CAR A))
+                                                  (T                                        (FIND X SELECTOR (CDR A))))))
+                             ; FIND := X=SYMBOL SELECTOR=CAR/CAAR BUCKET/SUBLISTS=bucket list or a specific bucket
+                             ; Traverses the bucket or the bucket list (depending on the selector; CAR=bucket LIST, CAAR=specific bucket)
                              (F (FIRST ARG-SYM))
-                             (B (FIND F CAAR (CAR *SYMLIS))))
+                             (B (FIND F CAAR *SYMLIS)))
                             (COND (B (LABEL ((V (FIND ARG-SYM CAR (CDR B))))
                                             (COND (V)
                                                   (T (*REPLACE-CDR B (CONS ARG-SYM (CDR B)))
                                                      ARG-SYM))))
                                   (T (*REPLACE-CAR *SYMLIS (CONS (CONS F (LIST ARG-SYM))
-                                                                 (CAR *SYMLIS)))
+                                                                 *SYMLIS))
                                      ARG-SYM)))))
+;; OKAY FINALLU+Y I UNDERSTAND I THINK : *SYMLIST IS A LIST OF BUCKET-LISTS
+;; WAIT actually maybe not rip, i think there is simply a mistake and instead of calling (car *symlis) the code should of been *symlist
 
 (SETQ MKNAME (LAMBDA (C A)
                      (LABEL ((N (CONS NIL A)))
-                            (*SETATOM N T)
-                            (*RPLACA N (*CAR C)))))
+                            (*SETATOMTAG N T)
+                            (*REPLACE-CAR N (*CAR C)))))
