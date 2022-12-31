@@ -306,6 +306,7 @@ of the two names match.
                                                   (T                                        (FIND X SELECTOR (CDR A))))))
                              ; FIND := X=SYMBOL SELECTOR=CAR/CAAR BUCKET/SUBLISTS=bucket list or a specific bucket
                              ; Traverses the bucket or the bucket list (depending on the selector; CAR=bucket LIST, CAAR=specific bucket)
+
                              (F (FIRST ARG-SYM))
                              (B (FIND F CAAR *SYMLIS)))
                             (COND (B (LABEL ((V (FIND ARG-SYM CAR (CDR B))))
