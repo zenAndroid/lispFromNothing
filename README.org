@@ -1,0 +1,28 @@
+* Readme.md:
+A repository for keeping up with my code from "Lisp from Nothing".
+
+** Things I am currently worried/preoccupied with:
+  1. Whether I can run the entire thing at the end with no major/minor problems.
+  2. Whether the name conflicts will be a problem given that I change the names of some obscure functions.
+
+*** Table of name changes:
+| The Old Names | The changed names |
+|---------------+-------------------|
+| *READC        | *READCHAR         |
+| *WRITEC       | *WRITECHAR        |
+| *RPLACA       | *REPLACE-CAR      |
+| *RPLACD       | *REPLACE-CAR      |
+| *ATOMP        | *ATOM-TAG-P       |
+| *SETATOM      | *SETATOMTAG       |
+| RPLACA        | REPLACE-CAR       |
+| RPLACD        | REPLACE-CDR       |
+| WRITEC        | WRITECHAR         |
+| TERPRI        | TERMINAL-PRINTER  |
+| PRIN1         | PRINT-ITEM        |
+| *PEEKED       | *PEEKED-CHAR      |
+| PEEKC         | PEEKCHAR          |
+| READC         | READCHAR          |
+|               |                   |
+
+
+  

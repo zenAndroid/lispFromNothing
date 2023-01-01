@@ -10,7 +10,7 @@ In addition there will be a few new special for ms that will be used
 inter nally to implement the LISP system in LISP:
 *READC *WRITEC
 *CAR *CDR *RPLACA *RPLACD
-*ATOMP *SETAT OM
+*ATOMP *SETATOM
 *NEXT *POOL
 *HALT
 
@@ -100,59 +100,59 @@ I suppose this is inevitable ...
                               (*REPLACE-CDR X Y))))
 
 
-(SETQ REVCONC (LAMBDA (A B)
+(SETQ RECONC (LAMBDA (A B)
                      (IF (EQ A NIL)
                          B
-                         (REVCONC (CDR A) (CONS (CAR A) B)))))
+                         (RECONC (CDR A) (CONS (CAR A) B)))))
 
 (SETQ REVERSE (LAMBDA (A)
-                      (REVCONC A NIL)))
+                      (RECONC A NIL)))
 
 
-;; (define (revconc a b) (if (eq? a '()) b (revconc (cdr a) (cons (car a) b))))
-;; > (revconc '(1 2 3) '(7 8 9))
+;; (define (reconc a b) (if (eq? a '()) b (reconc (cdr a) (cons (car a) b))))
+;; > (reconc '(1 2 3) '(7 8 9))
 ;; (3 2 1 7 8 9)
-;; > (trace revconc)
-;; (revconc)
-;; > (revconc '(1 2 3) '(7 8 9))
-;; |(revconc (1 2 3) (7 8 9))
-;; |(revconc (2 3) (1 7 8 9))
-;; |(revconc (3) (2 1 7 8 9))
-;; |(revconc () (3 2 1 7 8 9))
+;; > (trace reconc)
+;; (reconc)
+;; > (reconc '(1 2 3) '(7 8 9))
+;; |(reconc (1 2 3) (7 8 9))
+;; |(reconc (2 3) (1 7 8 9))
+;; |(reconc (3) (2 1 7 8 9))
+;; |(reconc () (3 2 1 7 8 9))
 ;; |(3 2 1 7 8 9)
 ;; (3 2 1 7 8 9)
-;; > (define (reverse a) (revconc a '()))
+;; > (define (reverse a) (reconc a '()))
 ;; > (reverse '(1 2 3))
-;; |(revconc (1 2 3) ())
-;; |(revconc (2 3) (1))
-;; |(revconc (3) (2 1))
-;; |(revconc () (3 2 1))
+;; |(reconc (1 2 3) ())
+;; |(reconc (2 3) (1))
+;; |(reconc (3) (2 1))
+;; |(reconc () (3 2 1))
 ;; |(3 2 1)
 ;; (3 2 1)
-;; > (trace revconc reverse)
-;; (revconc reverse)
+;; > (trace reconc reverse)
+;; (reconc reverse)
 ;; > (reverse '(1 2 3))
 ;; |(reverse (1 2 3))
-;; |(revconc (1 2 3) ())
-;; |(revconc (2 3) (1))
-;; |(revconc (3) (2 1))
-;; |(revconc () (3 2 1))
+;; |(reconc (1 2 3) ())
+;; |(reconc (2 3) (1))
+;; |(reconc (3) (2 1))
+;; |(reconc () (3 2 1))
 ;; |(3 2 1)
 ;; (3 2 1)
 
 (SETQ NREVERSE (LAMBDA (A)
-                       (LABEL ((NREVCONC
+                       (LABEL ((NRECONC
                                 (LAMBDA (A B)
                                         (COND ((EQ A NIL) B)
                                               (T (SETQ *TMP (CDR A))
                                                  (*REPLACE-CDR A B)
-                                                 (NREVCONC *TMP A))))))
+                                                 (NRECONC *TMP A))))))
                               (COND ((EQ A NIL) NIL)
                                     ((ATOM A)   (HALT "NREVERSE: EXPECTED LIST"))
-                                    (T          (NREVCONC A NIL))))))
+                                    (T          (NRECONC A NIL))))))
 
 (SETQ APPEND (LAMBDA (A B)
-                     (REVCONC (REVERSE A) B)))
+                     (RECONC (REVERSE A) B)))
 
 (SETQ NCONC (LAMBDA (A B)
                     (LABEL
@@ -239,7 +239,7 @@ All the ugly details follow immediately.
 (SETQ WRITECHAR (LAMBDA (C)
                      (*WRITEC C)))
 
-(SETQ TERMINATE-PRINTER (LAMBDA () ; Original name: TERPRI (because lisp is retar-, lisp is the most powerful language in the world actually and people that sont like it just dont GET it ya kno)
+(SETQ TERMINATE-PRINTER (LAMBDA () ; Original name: TERPRI (because lisp is retar-, lisp is the most powerful language in the world actually and people that dont like it just dont GET it ya kno)
                                 (*WRITEC *NL)))
 
 (SETQ PRINT-ITEM (LAMBDA (X) ; Original name PRIN1, for "print one"
@@ -292,21 +292,20 @@ of the two names match.
                               ((EQ (*CAR X) (*CAR Y))
                                (SAMENAMEP (*CDR X) (*CDR Y))))))
 
-; REMINDER: Whenever you see *CAR or *CDR, remember they are the untyped versions.
-; Specifically, refer to the figure in page 52 (FigureFour-p52)
-; So the *CAR goes straight to the CHARACTER LIST that makes up the *NAME* of a given ATOM.
+REMINDER: Whenever you see *CAR or *CDR, remember they are the untyped versions.
+Specifically, refer to the figure in page 52 (FigureFour-p52)
+So the *CAR goes straight to the CHARACTER LIST that makes up the *NAME* of a given ATOM.
 
 (SETQ INTERN (LAMBDA (ARG-SYM) ; Interns symbols and itroduces then to the symbol list, uses bucket list data structure.
                      (LABEL ((FIRST (LAMBDA (ARG) (CONS (MKNAME (*CAR ARG) NIL) NIL)))
-                             ; FIRST := takes arg symbol; makes a list of an atomic cell named with the first char of the arg. (??? i think this is a good way of explaining it?)
+                             ;; FIRST := makes a symbol based on the first char of the arg, it is in a list like the image MKNAME-p59.png
 
                              (FIND  (LAMBDA (X SELECTOR A)
                                             (COND ((EQ A NIL)                               NIL)
                                                   ((SAMENAMEP (*CAR X) (*CAR (SELECTOR A))) (CAR A))
                                                   (T                                        (FIND X SELECTOR (CDR A))))))
-                             ; FIND := X=SYMBOL SELECTOR=CAR/CAAR BUCKET/SUBLISTS=bucket list or a specific bucket
-                             ; Traverses the bucket or the bucket list (depending on the selector; CAR=bucket LIST, CAAR=specific bucket)
-
+                             ;; FIND := X=SYMBOL SELECTOR=CAR/CAAR BUCKET/SUBLISTS=bucket list or a specific bucket
+                             ;; Traverses the bucket or the bucket list (depending on the selector; CAR=bucket LIST, CAAR=specific bucket)
                              (F (FIRST ARG-SYM))
                              (B (FIND F CAAR *SYMLIS)))
                             (COND (B (LABEL ((V (FIND ARG-SYM CAR (CDR B))))
@@ -316,10 +315,130 @@ of the two names match.
                                   (T (*REPLACE-CAR *SYMLIS (CONS (CONS F (LIST ARG-SYM))
                                                                  *SYMLIS))
                                      ARG-SYM)))))
-;; OKAY FINALLU+Y I UNDERSTAND I THINK : *SYMLIST IS A LIST OF BUCKET-LISTS
+
 ;; WAIT actually maybe not rip, i think there is simply a mistake and instead of calling (car *symlis) the code should of been *symlist
 
 (SETQ MKNAME (LAMBDA (C A)
                      (LABEL ((N (CONS NIL A)))
                             (*SETATOMTAG N T)
                             (*REPLACE-CAR N (*CAR C)))))
+
+TODO: "Debug" or go through an execution of the INTERN function in the four main cases: 1- symbol present 2- no symbol present 3- symbol not present, but bucket list present 4- bucket list not present.
+Also see if you can think of more cases
+
+PEEKC and READC are both functions that read a single character from the input device (or file) of the LISP system and retur n it. The difference between them is that READC ‘‘consumes’’ the character it delivers by requesting the next input character from the device, while PEEKC will not request a new character and hence deliver the same value over and over again when called multiple times. In other words, PEEKC perfor ms a look- ahead operation on the input device.
+The global var iable *PEEKED is used to store a character that has been read by PEEKC. Both PEEKC and READC first check that var iable and if it is bound to a value other than NIL, they retur n that value without actually perfor ming a read operation.
+PEEKC could easily be implemented as a low-level function, but in this case the LISP code is actually faster! A low-level peekc() function would not have access to the (LISP-level) INTERN function, so the delivered character would have to be inter ned each time when the low-level function returns. A high-level PEEKC function, like the below one, does this only one time per read or look-ahead, because the interned atom is then cached in a global variable.
+
+(SETQ *PEEKED-CHAR NIL)
+
+(SETQ PEEKCHAR (LAMBDA ()
+                       (COND (*PEEKED-CHAR) ; If a character was already peeked, then return NIL.
+                             (T (SETQ *PEEKED-CHAR (*READC)) ; Else, set *peeked-char to the result of *READC,
+                                (COND ((EQ *PEEKED-CHAR NIL) NIL) ; if that's nil (because the input device couldnt provide, etc.), return nil
+                                      (T (SETQ *PEEKED-CHAR
+                                               (INTERN (CONS *PEEKED-CHAR ; p60: *READC returns an atom name, so a cons cell has to be attached to its result
+                                                             ;; in order to turn it into a complete atom, then intern that
+                                                             NIL)))
+                                         *PEEKED-CHAR))))))
+
+(SETQ READCHAR (LAMBDA ()
+                    (COND (*PEEKED-CHAR (LABEL ((CHARACTER *PEEKED-CHAR)) ; If a character was peeked already; return it then set the last peeked character to NIL.
+                                               (SETQ *PEEKED-CHAR NIL)
+                                               C))
+                          (T (LABEL ((CHARACTER (*READC)))
+                                    (COND ((EQ CHARACTER NIL) NIL) ; If the input device has failed to provide, return NIL.
+                                          (T (INTERN (CONS CHARACTER NIL)))))))))
+
+(SETQ MAKESYM (LAMBDA (N)
+                      (LABEL ((IMPL (LAMBDA (N A)
+                                            (COND ((EQ N NIL) (CONS A NIL))
+                                                  (T          (IMPL (CDR N)
+                                                                    (MKNAME (*CAR (CAR N)) A)))))))
+                             (IMPL (REVERSE N) NIL))))
+
+(SETQ IMPLODE (LAMBDA (X) (INTERN (MAKESYM X))))
+
+(SETQ EXPLODE (LAMBDA (N)
+                      (LABEL ((MKATOM (LAMBDA (X) (INTERN (CONS (MKNAME X NIL) NIL))))
+                              (EXPL (LAMBDA (N A)
+                                            (COND ((EQ N NIL) (NREVERSE A))
+                                                  (T          (EXPL (*CDR N)
+                                                                    (CONS (MKATOM N) A)))))))
+                             (COND ((ATOM N) (EXPL (*CAR N) NIL))
+                                   (T        (HALT "EXPLODE: EXPECTED ATOM"))))))
+
+(SETQ *SYMBOLS (QUOTE (A B C D E F G H I
+                         J K L M N O P Q R
+                         S T U V W X Y Z * -
+                         0 1 2 3 4 5 6 7 8 9)))
+
+(SETQ SYMBOLIC (LAMBDA (C) (MEMBER C *SYMBOLS)))
+
+(SETQ READ (LAMBDA ()
+                   (LABEL ((SKIPC (LAMBDA (C)
+                                          (COND ((EQ " " C)
+                                                 (READC)
+                                                 (SKIPC (PEEKC)))
+                                                ((EQ C *NL)
+                                                 (READC)
+                                                 (SKIPC (PEEKC)))
+                                                (T C))))
+                           (RD-COMM (LAMBDA (C)
+                                            (COND ((EQ C *NL))
+                                                  (T (RD-COMM (READC))))))
+                           (RD-ATOM (LAMBDA (C A)
+                                            (COND ((SYMBOLIC C)
+                                                   (READC)
+                                                   (RD-ATOM (PEEKC) (CONS C A)))
+                                                  (T (COND ((EQUAL A (QUOTE (L I N)))
+                                                            NIL)
+                                                           (T (IMPLODE
+                                                               (NREVERSE A))))))))
+                           (RD-PSTR (LAMBDA (C A)
+                                            (COND ((EQ C NIL)
+                                                   (HALT "UNTERMINATED STRING"))
+                                                  ((EQ C "\"")
+                                                   (READC)
+                                                   (LIST (QUOTE QUOTE)
+                                                         (IMPLODE (NREVERSE A))))
+                                                  ((EQ C "\\")
+                                                   (READC)
+                                                   (SETQ C (READC))
+                                                   (RD-PSTR (PEEKC)
+                                                            (CONS C A)))
+                                                  (T (READC)
+                                                     (RD-PSTR (PEEKC)
+                                                              (CONS C A))))))
+                           (RD-LIST (LAMBDA (C A)
+                                            (COND ((EQ C NIL)
+                                                   (HALT "UNTERMINATED LIST"))
+                                                  ((EQ *RP C)
+                                                   (READC)
+                                                   (NREVERSE A))
+                                                  (T (SETQ *READ-TMP
+                                                           (RD-OBJ (SKIPC (PEEKC))))
+                                                     (RD-LIST (SKIPC (PEEKC))
+                                                              (CONS *READ-TMP A))))))
+                           (RD-OBJ (LAMBDA (C)
+                                           (COND ((EQ C NIL) NIL)
+                                                 ((SYMBOLIC C)
+                                                  (RD-ATOM C NIL))
+                                                 ((EQ C *LP)
+                                                  (READC)
+                                                  (RD-LIST (SKIPC (PEEKC)) NIL))
+                                                 ((EQ C "’")
+                                                  (READC)
+                                                  (LIST (QUOTE QUOTE)
+                                                        (RD-OBJ (SKIPC (PEEKC)))))
+                                                 ((EQ C "\"")
+                                                  (READC)
+                                                  (RD-PSTR (PEEKC) NIL))
+                                                 ((EQ C ";")
+                                                  (RD-COMM (READC))
+                                                  (RD-OBJ (SKIPC (PEEKC))))
+                                                 ((EQ C *RP)
+                                                  (READC)
+                                                  (RD-OBJ (SKIPC (PEEKC))))
+                                                 (T (HALT "FUNNY CHARACTER"))))))
+                          (RD-OBJ (SKIPC (PEEKC))))))
